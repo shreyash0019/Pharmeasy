@@ -3,14 +3,14 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Reminder
 from .serializers import ReminderSerializer
 
-
 class ReminderViewSet(viewsets.ModelViewSet):
-    queryset = Reminder.objects.all()   # ✅ IMPORTANT LINE
+    queryset = Reminder.objects.all()
     serializer_class = ReminderSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Reminder.objects.filter(patient=self.request.user)
+        user = self.request.user
+        return Reminder.objects.filter(user=user)
 
     def perform_create(self, serializer):
-        serializer.save(patient=self.request.user)
+        serializer.save(user=self.request.user)
