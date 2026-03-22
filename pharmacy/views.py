@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 
 from .models import Medicine, StoreInventory, MedicalStore, Reminder
-from orders.models import Order
+from orders.models import Order   # ✅ correct import
 
 from .serializers import (
     MedicineSerializer,
@@ -17,9 +17,12 @@ from .serializers import (
 
 # 🔹 MEDICINE CRUD
 class MedicineViewSet(viewsets.ModelViewSet):
-    queryset = Medicine.objects.all()
+    queryset = Medicine.objects.all().only(
+        'id', 'name', 'description', 'requires_prescription'
+    )
     serializer_class = MedicineSerializer
     permission_classes = [IsAuthenticated]
+
 
 # 🔹 MEDICAL STORE CRUD
 class MedicalStoreViewSet(viewsets.ModelViewSet):
@@ -36,6 +39,7 @@ class MedicalStoreViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+
 # 🔹 STORE INVENTORY CRUD
 class StoreInventoryViewSet(viewsets.ModelViewSet):
     queryset = StoreInventory.objects.all()
@@ -48,7 +52,8 @@ class StoreInventoryViewSet(viewsets.ModelViewSet):
             return StoreInventory.objects.filter(store__user=user)
         return StoreInventory.objects.all()
 
-# 🔍 SEARCH MEDICINE
+
+# 🔍 SEARCH MEDICINE (FIXED)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def search_medicine(request):
@@ -57,11 +62,11 @@ def search_medicine(request):
         return Response({"error": "Please provide search query"}, status=400)
 
     medicines = Medicine.objects.only(
-    'id', 'name', 'description', 'requires_prescription'
-).filter(
-    Q(name__icontains=query) |
-    Q(description__icontains=query)
-))
+        'id', 'name', 'description', 'requires_prescription'
+    ).filter(
+        Q(name__icontains=query) |
+        Q(description__icontains=query)
+    )
 
     data = []
     for med in medicines:
@@ -83,11 +88,13 @@ def search_medicine(request):
         data.append({
             "medicine_id": med.id,
             "medicine": med.name,
+            "description": med.description,
             "requires_prescription": med.requires_prescription,
             "available_stores": stores
         })
 
     return Response(data)
+
 
 # 🏪 GET STORES
 @api_view(['GET'])
@@ -97,7 +104,20 @@ def get_stores(request):
     serializer = MedicalStoreSerializer(stores, many=True)
     return Response(serializer.data)
 
+
 # 🛒 GET ORDERS
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_orders(request):
+    user = request.user
+
+    if user.role == "seller":
+        orders = Order.objects.filter(store__user=user)
+    else:
+        orders = Order.objects.filter(patient=user)
+
+    serializer = OrderSerializer(orders, many=True)
+    return Response(serializer.data)
 
 
 # ⏰ GET REMINDERS
