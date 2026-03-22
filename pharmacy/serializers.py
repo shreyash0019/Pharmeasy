@@ -1,6 +1,6 @@
 from rest_framework import serializers
-from .models import Medicine, StoreInventory, MedicalStore, Order, Reminder
-
+from .models import Medicine, StoreInventory, MedicalStore, Reminder
+from orders.models import Order
 # 💊 Medicine Serializer
 class MedicineSerializer(serializers.ModelSerializer):
     class Meta:
