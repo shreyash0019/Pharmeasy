@@ -1,4 +1,3 @@
-```python
 from rest_framework import serializers
 from .models import Order
 
@@ -46,4 +45,3 @@ class OrderSerializer(serializers.ModelSerializer):
         instance.prescription = validated_data.get('prescription', instance.prescription)
         instance.save()
         return instance
-```
