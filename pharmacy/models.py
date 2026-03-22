@@ -56,22 +56,7 @@ class StoreInventory(models.Model):
 
 
 
-# 📦 Order Items
-class OrderItem(models.Model):
-    order = models.ForeignKey(
-        Order,
-        on_delete=models.CASCADE,
-        related_name="items"
-    )
-    medicine = models.ForeignKey(
-        Medicine,
-        on_delete=models.CASCADE,
-        related_name="order_items"   # ✅ added
-    )
-    quantity = models.IntegerField()
 
-    def __str__(self):
-        return f"{self.medicine.name} x {self.quantity}"
 
 
 # ⏰ Reminders
