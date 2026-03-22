@@ -10,7 +10,6 @@ from pharmacy.views import (
     StoreInventoryViewSet,
     search_medicine,
     get_stores,
-    get_orders,
     get_reminders
 )
 from orders.views import OrderViewSet
