@@ -24,8 +24,8 @@ from rest_framework_simplejwt.views import TokenRefreshView
 # 🔹 Router
 router = DefaultRouter()
 router.register('medicines', MedicineViewSet)
-router.register('stores', MedicalStoreViewSet)
-router.register('inventory', StoreInventoryViewSet)
+router.register('stores', MedicalStoreViewSet)  # queryset added in views.py
+router.register('inventory', StoreInventoryViewSet)  # queryset added in views.py
 router.register('orders', OrderViewSet)
 router.register('reminders', ReminderViewSet)
 
