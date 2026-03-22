@@ -7,7 +7,7 @@ class MedicalStore(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="medical_store"   # ✅ added
+        related_name="medical_store"
     )
     store_name = models.CharField(max_length=200)
     address = models.TextField()
@@ -16,14 +16,13 @@ class MedicalStore(models.Model):
         return self.store_name
 
 
-# 💊 Medicine Master
+# 💊 Medicine
 class Medicine(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField()
     requires_prescription = models.BooleanField(default=False)
 
-    manufacturer = models.CharField(max_length=255, blank=True, null=True)
-    composition = models.CharField(max_length=255, blank=True, null=True)
+    # ❌ REMOVED manufacturer & composition
 
     def __str__(self):
         return self.name
@@ -34,12 +33,12 @@ class StoreInventory(models.Model):
     store = models.ForeignKey(
         MedicalStore,
         on_delete=models.CASCADE,
-        related_name="inventories"   # ✅ added
+        related_name="inventories"
     )
     medicine = models.ForeignKey(
         Medicine,
         on_delete=models.CASCADE,
-        related_name="store_data"   # ✅ added
+        related_name="store_data"
     )
 
     price = models.DecimalField(max_digits=10, decimal_places=2)
@@ -54,20 +53,15 @@ class StoreInventory(models.Model):
         return f"{self.store.store_name} - {self.medicine.name}"
 
 
-
-
-
-
-
-# ⏰ Reminders
+# ⏰ Reminder
 class Reminder(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="pharmacy_reminders"   # ✅ FIXED
+        related_name="pharmacy_reminders"
     )
-    message = models.TextField()
-    remind_at = models.DateTimeField()
+    message = models.TextField(null=True, blank=True)  # safe
+    remind_at = models.DateTimeField(null=True, blank=True)  # safe
 
     def __str__(self):
-        return self.message
+        return self.message or "Reminder"
