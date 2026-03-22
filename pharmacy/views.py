@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 
 from .models import Medicine, StoreInventory, MedicalStore, Reminder
-from orders.models import Order   # ✅ correct import
+from orders.models import Order
 
 from .serializers import (
     MedicineSerializer,
@@ -53,7 +53,7 @@ class StoreInventoryViewSet(viewsets.ModelViewSet):
         return StoreInventory.objects.all()
 
 
-# 🔍 SEARCH MEDICINE (FIXED)
+# 🔍 SEARCH MEDICINE (SAFE - NO EXTRA FIELDS)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def search_medicine(request):
@@ -61,9 +61,7 @@ def search_medicine(request):
     if not query:
         return Response({"error": "Please provide search query"}, status=400)
 
-    medicines = Medicine.objects.only(
-        'id', 'name', 'description', 'requires_prescription'
-    ).filter(
+    medicines = Medicine.objects.filter(
         Q(name__icontains=query) |
         Q(description__icontains=query)
     )
@@ -105,7 +103,7 @@ def get_stores(request):
     return Response(serializer.data)
 
 
-# 🛒 GET ORDERS
+# 🛒 GET ORDERS (FIXED FIELD)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_orders(request):
