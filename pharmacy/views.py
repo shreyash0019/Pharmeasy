@@ -19,10 +19,9 @@ class MedicineViewSet(viewsets.ModelViewSet):
     serializer_class = MedicineSerializer
     permission_classes = [IsAuthenticated]
 
-
 # 🔹 MEDICAL STORE CRUD
 class MedicalStoreViewSet(viewsets.ModelViewSet):
-    queryset = MedicalStore.objects.all()  # added class-level queryset
+    queryset = MedicalStore.objects.all()
     serializer_class = MedicalStoreSerializer
     permission_classes = [IsAuthenticated]
 
@@ -35,10 +34,9 @@ class MedicalStoreViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-
 # 🔹 STORE INVENTORY CRUD
 class StoreInventoryViewSet(viewsets.ModelViewSet):
-    queryset = StoreInventory.objects.all()  # added class-level queryset
+    queryset = StoreInventory.objects.all()
     serializer_class = StoreInventorySerializer
     permission_classes = [IsAuthenticated]
 
@@ -48,8 +46,7 @@ class StoreInventoryViewSet(viewsets.ModelViewSet):
             return StoreInventory.objects.filter(store__user=user)
         return StoreInventory.objects.all()
 
-
-# 🔍 SEARCH MEDICINE (for front-end with medicine_id & store_id)
+# 🔍 SEARCH MEDICINE
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def search_medicine(request):
@@ -80,14 +77,13 @@ def search_medicine(request):
         ]
 
         data.append({
-            "medicine_id": med.id,       # medicine ID for front-end
-            "medicine_name": med.name,   # medicine name
+            "medicine_id": med.id,
+            "medicine": med.name,
             "requires_prescription": med.requires_prescription,
-            "available_stores": stores   # each store has store_id
+            "available_stores": stores
         })
 
     return Response(data)
-
 
 # 🏪 GET STORES
 @api_view(['GET'])
@@ -97,35 +93,18 @@ def get_stores(request):
     serializer = MedicalStoreSerializer(stores, many=True)
     return Response(serializer.data)
 
-
 # 🛒 GET ORDERS
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_orders(request):
     user = request.user
-    if hasattr(user, 'medical_store'):
+    if user.role == "seller":
         orders = Order.objects.filter(store__user=user)
     else:
-        orders = Order.objects.filter(user=user)
+        orders = Order.objects.filter(patient=user)
 
     serializer = OrderSerializer(orders, many=True)
     return Response(serializer.data)
-
-
-# ✅ CONFIRM ORDER
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def confirm_order(request, order_id):
-    try:
-        order = Order.objects.get(id=order_id)
-        if order.store.user != request.user:
-            return Response({"error": "Not allowed"}, status=403)
-        order.status = "confirmed"
-        order.save()
-        return Response({"message": "Order confirmed"})
-    except Order.DoesNotExist:
-        return Response({"error": "Order not found"}, status=404)
-
 
 # ⏰ GET REMINDERS
 @api_view(['GET'])
