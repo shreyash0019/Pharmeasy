@@ -1,17 +1,26 @@
-from django.db import models
-from django.conf import settings
-from pharmacy.models import Medicine, MedicalStore
+from rest_framework import serializers
+from .models import Order
 
-class Order(models.Model):
-    STATUS = (
-        ('pending', 'Pending'),
-        ('confirmed', 'Confirmed'),
-    )
 
-    patient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    store = models.ForeignKey(MedicalStore, on_delete=models.CASCADE)
-    medicine = models.ForeignKey(Medicine, on_delete=models.CASCADE)
-    quantity = models.IntegerField()
-    prescription = models.FileField(upload_to='prescriptions/', null=True, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS, default='pending')
-    created_at = models.DateTimeField(auto_now_add=True)
+class OrderSerializer(serializers.ModelSerializer):
+    patient_name = serializers.CharField(source='patient.username', read_only=True)
+    store_name = serializers.CharField(source='store.store_name', read_only=True)
+    medicine_name = serializers.CharField(source='medicine.name', read_only=True)
+
+    class Meta:
+        model = Order
+        fields = [
+            'id',
+            'patient',
+            'patient_name',
+            'store',
+            'store_name',
+            'medicine',
+            'medicine_name',
+            'quantity',
+            'prescription',
+            'status',
+            'created_at'
+        ]
+
+        read_only_fields = ['patient', 'status']
