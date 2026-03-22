@@ -8,17 +8,18 @@ from pharmacy.views import (
     MedicineViewSet,
     MedicalStoreViewSet,
     StoreInventoryViewSet,
-    search_medicine
+    search_medicine,
+    get_stores,
+    get_orders,
+    confirm_order,
+    get_reminders
 )
 
 from orders.views import OrderViewSet
 from reminders.views import ReminderViewSet
-from accounts.views import RegisterView
+from accounts.views import RegisterView, CustomLoginView  # ✅ updated
 
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
+from rest_framework_simplejwt.views import TokenRefreshView
 
 router = DefaultRouter()
 router.register('medicines', MedicineViewSet)
@@ -30,18 +31,24 @@ router.register('reminders', ReminderViewSet)
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    # Auth
+    # 🔐 Auth
     path('api/register/', RegisterView.as_view()),
-    path('api/login/', TokenObtainPairView.as_view()),
+    path('api/login/', CustomLoginView.as_view()),  # ✅ FIXED
     path('api/token/refresh/', TokenRefreshView.as_view()),
 
-    # Search
+    # 🔍 Search
     path('api/search/', search_medicine),
 
-    # All ViewSets
+    # ✅ Custom APIs
+    path('api/get-stores/', get_stores),
+    path('api/get-orders/', get_orders),
+    path('api/orders/<int:order_id>/confirm/', confirm_order),
+    path('api/get-reminders/', get_reminders),
+
+    # 🔹 ViewSets
     path('api/', include(router.urls)),
 ]
 
-# Serve media files in development
+# Media
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
