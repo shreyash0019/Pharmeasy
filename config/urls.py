@@ -33,17 +33,17 @@ urlpatterns = [
 
     # 🔐 Auth
     path('api/register/', RegisterView.as_view()),
-    path('api/login/', CustomLoginView.as_view()),  # ✅ FIXED
+    path('api/login/', CustomLoginView.as_view()),
     path('api/token/refresh/', TokenRefreshView.as_view()),
 
     # 🔍 Search
     path('api/search/', search_medicine),
 
-    # ✅ Custom APIs
-    path('api/get-stores/', get_stores),
-    path('api/get-orders/', get_orders),
+    # ✅ Custom APIs (clean naming)
+    path('api/stores/all/', get_stores),
+    path('api/orders/my/', get_orders),
     path('api/orders/<int:order_id>/confirm/', confirm_order),
-    path('api/get-reminders/', get_reminders),
+    path('api/reminders/my/', get_reminders),
 
     # 🔹 ViewSets
     path('api/', include(router.urls)),
