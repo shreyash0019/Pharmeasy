@@ -1,127 +1,87 @@
-from rest_framework import viewsets
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from django.db.models import Q
-
+from rest_framework import serializers
 from .models import Medicine, StoreInventory, MedicalStore, Order, Reminder
-from .serializers import (
-    MedicineSerializer,
-    StoreInventorySerializer,
-    MedicalStoreSerializer,
-    OrderSerializer,
-    ReminderSerializer
-)
 
-# 🔹 MEDICINE CRUD
-class MedicineViewSet(viewsets.ModelViewSet):
-    queryset = Medicine.objects.all()
-    serializer_class = MedicineSerializer
-    permission_classes = [IsAuthenticated]
-
-# 🔹 MEDICAL STORE CRUD
-class MedicalStoreViewSet(viewsets.ModelViewSet):
-    serializer_class = MedicalStoreSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        user = self.request.user
-        if hasattr(user, 'medical_store'):
-            return MedicalStore.objects.filter(user=user)
-        return MedicalStore.objects.all()
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-# 🔹 STORE INVENTORY CRUD
-class StoreInventoryViewSet(viewsets.ModelViewSet):
-    serializer_class = StoreInventorySerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        user = self.request.user
-        if hasattr(user, 'medical_store'):
-            return StoreInventory.objects.filter(store__user=user)
-        return StoreInventory.objects.all()
-
-# 🔍 SEARCH MEDICINE
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def search_medicine(request):
-    query = request.GET.get('q', '')
-    if not query:
-        return Response({"error": "Please provide search query"}, status=400)
-
-    medicines = Medicine.objects.filter(
-        Q(name__icontains=query) |
-        Q(description__icontains=query)
-    )
-
-    data = []
-    for med in medicines:
-        inventories = StoreInventory.objects.filter(
-            medicine=med,
-            stock__gt=0
-        ).select_related('store')
-
-        stores = [
-            {
-                "store_id": inv.store.id,
-                "store_name": inv.store.store_name,
-                "price": inv.price,
-                "stock": inv.stock
-            }
-            for inv in inventories
+# 💊 Medicine Serializer
+class MedicineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Medicine
+        fields = [
+            'id',
+            'name',
+            'description',
+            'requires_prescription',
+            'manufacturer',
+            'composition'
         ]
 
-        data.append({
-            "medicine_id": med.id,
-            "medicine": med.name,
-            "requires_prescription": med.requires_prescription,
-            "available_stores": stores
-        })
+# 🏪 Medical Store Serializer
+class MedicalStoreSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField(read_only=True)
 
-    return Response(data)
+    class Meta:
+        model = MedicalStore
+        fields = [
+            'id',
+            'store_name',
+            'address',
+            'user'
+        ]
 
-# 🏪 GET STORES
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_stores(request):
-    stores = MedicalStore.objects.all()
-    serializer = MedicalStoreSerializer(stores, many=True)
-    return Response(serializer.data)
+# 📦 Store Inventory Serializer
+class StoreInventorySerializer(serializers.ModelSerializer):
+    store_name = serializers.CharField(source='store.store_name', read_only=True)
+    medicine_name = serializers.CharField(source='medicine.name', read_only=True)
 
-# 🛒 GET ORDERS
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_orders(request):
-    user = request.user
-    if hasattr(user, 'medical_store'):
-        orders = Order.objects.filter(store__user=user)
-    else:
-        orders = Order.objects.filter(user=user)
+    class Meta:
+        model = StoreInventory
+        fields = [
+            'id',
+            'store',
+            'store_name',
+            'medicine',
+            'medicine_name',
+            'price',
+            'discount_price',
+            'stock',
+            'expiry_date'
+        ]
 
-    serializer = OrderSerializer(orders, many=True)
-    return Response(serializer.data)
+# 🛒 Order Serializer
+class OrderSerializer(serializers.ModelSerializer):
+    store_name = serializers.CharField(source='store.store_name', read_only=True)
+    medicine_name = serializers.CharField(source='medicine.name', read_only=True)
+    user_name = serializers.CharField(source='user.username', read_only=True)
 
-# ✅ CONFIRM ORDER
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def confirm_order(request, order_id):
-    try:
-        order = Order.objects.get(id=order_id)
-        if order.store.user != request.user:
-            return Response({"error": "Not allowed"}, status=403)
-        order.status = "confirmed"
-        order.save()
-        return Response({"message": "Order confirmed"})
-    except Order.DoesNotExist:
-        return Response({"error": "Order not found"}, status=404)
+    class Meta:
+        model = Order
+        fields = [
+            'id',
+            'store',
+            'store_name',
+            'medicine',
+            'medicine_name',
+            'user',
+            'user_name',
+            'quantity',
+            'status',
+            'created_at'
+        ]
 
-# ⏰ GET REMINDERS
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_reminders(request):
-    reminders = Reminder.objects.filter(user=request.user)
-    serializer = ReminderSerializer(reminders, many=True)
-    return Response(serializer.data)
+# ⏰ Reminder Serializer
+class ReminderSerializer(serializers.ModelSerializer):
+    medicine_name = serializers.CharField(source='medicine.name', read_only=True)
+    user_name = serializers.CharField(source='user.username', read_only=True)
+
+    class Meta:
+        model = Reminder
+        fields = [
+            'id',
+            'medicine',
+            'medicine_name',
+            'user',
+            'user_name',
+            'reminder_time',
+            'frequency_per_day',
+            'start_date',
+            'end_date'
+        ]
