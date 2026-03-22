@@ -19,6 +19,7 @@ class MedicineViewSet(viewsets.ModelViewSet):
     serializer_class = MedicineSerializer
     permission_classes = [IsAuthenticated]
 
+
 # 🔹 MEDICAL STORE CRUD
 class MedicalStoreViewSet(viewsets.ModelViewSet):
     queryset = MedicalStore.objects.all()  # added class-level queryset
@@ -34,6 +35,7 @@ class MedicalStoreViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+
 # 🔹 STORE INVENTORY CRUD
 class StoreInventoryViewSet(viewsets.ModelViewSet):
     queryset = StoreInventory.objects.all()  # added class-level queryset
@@ -46,7 +48,8 @@ class StoreInventoryViewSet(viewsets.ModelViewSet):
             return StoreInventory.objects.filter(store__user=user)
         return StoreInventory.objects.all()
 
-# 🔍 SEARCH MEDICINE
+
+# 🔍 SEARCH MEDICINE (for front-end with medicine_id & store_id)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def search_medicine(request):
@@ -77,13 +80,14 @@ def search_medicine(request):
         ]
 
         data.append({
-            "medicine_id": med.id,
-            "medicine": med.name,
+            "medicine_id": med.id,       # medicine ID for front-end
+            "medicine_name": med.name,   # medicine name
             "requires_prescription": med.requires_prescription,
-            "available_stores": stores
+            "available_stores": stores   # each store has store_id
         })
 
     return Response(data)
+
 
 # 🏪 GET STORES
 @api_view(['GET'])
@@ -92,6 +96,7 @@ def get_stores(request):
     stores = MedicalStore.objects.all()
     serializer = MedicalStoreSerializer(stores, many=True)
     return Response(serializer.data)
+
 
 # 🛒 GET ORDERS
 @api_view(['GET'])
@@ -106,6 +111,7 @@ def get_orders(request):
     serializer = OrderSerializer(orders, many=True)
     return Response(serializer.data)
 
+
 # ✅ CONFIRM ORDER
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -119,6 +125,7 @@ def confirm_order(request, order_id):
         return Response({"message": "Order confirmed"})
     except Order.DoesNotExist:
         return Response({"error": "Order not found"}, status=404)
+
 
 # ⏰ GET REMINDERS
 @api_view(['GET'])
