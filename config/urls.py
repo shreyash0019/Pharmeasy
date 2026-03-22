@@ -11,22 +11,24 @@ from pharmacy.views import (
     search_medicine,
     get_stores,
     get_orders,
-    confirm_order,
     get_reminders
 )
 
 from orders.views import OrderViewSet
 from reminders.views import ReminderViewSet
-from accounts.views import RegisterView, CustomLoginView  # ✅ updated
+from accounts.views import RegisterView, CustomLoginView
 
 from rest_framework_simplejwt.views import TokenRefreshView
 
+
+# 🔹 Router
 router = DefaultRouter()
 router.register('medicines', MedicineViewSet)
 router.register('stores', MedicalStoreViewSet)
 router.register('inventory', StoreInventoryViewSet)
 router.register('orders', OrderViewSet)
 router.register('reminders', ReminderViewSet)
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -39,16 +41,15 @@ urlpatterns = [
     # 🔍 Search
     path('api/search/', search_medicine),
 
-    # ✅ Custom APIs (clean naming)
+    # ✅ Custom APIs
     path('api/stores/all/', get_stores),
     path('api/orders/my/', get_orders),
-    path('api/orders/<int:order_id>/confirm/', confirm_order),
     path('api/reminders/my/', get_reminders),
 
     # 🔹 ViewSets
     path('api/', include(router.urls)),
 ]
 
-# Media
+# 📁 Media
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
