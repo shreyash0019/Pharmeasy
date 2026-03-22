@@ -11,13 +11,11 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'password', 'role']
 
     def validate_password(self, value):
-        # ✅ Validate password strength
         validate_password(value)
         return value
 
     @transaction.atomic
     def create(self, validated_data):
-        # Use create_user to handle hashing
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data.get('email'),
