@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from .models import Medicine, StoreInventory, MedicalStore, Reminder
 from orders.models import Order
-# 💊 Medicine Serializer
+
+# 💊 Medicine Serializer (❌ removed manufacturer & composition)
 class MedicineSerializer(serializers.ModelSerializer):
     class Meta:
         model = Medicine
@@ -9,10 +10,9 @@ class MedicineSerializer(serializers.ModelSerializer):
             'id',
             'name',
             'description',
-            'requires_prescription',
-            'manufacturer',
-            'composition'
+            'requires_prescription'
         ]
+
 
 # 🏪 Medical Store Serializer
 class MedicalStoreSerializer(serializers.ModelSerializer):
@@ -26,6 +26,7 @@ class MedicalStoreSerializer(serializers.ModelSerializer):
             'address',
             'user'
         ]
+
 
 # 📦 Store Inventory Serializer
 class StoreInventorySerializer(serializers.ModelSerializer):
@@ -46,11 +47,12 @@ class StoreInventorySerializer(serializers.ModelSerializer):
             'expiry_date'
         ]
 
-# 🛒 Order Serializer
+
+# 🛒 Order Serializer (FIXED → patient instead of user)
 class OrderSerializer(serializers.ModelSerializer):
     store_name = serializers.CharField(source='store.store_name', read_only=True)
     medicine_name = serializers.CharField(source='medicine.name', read_only=True)
-    user_name = serializers.CharField(source='user.username', read_only=True)
+    patient_name = serializers.CharField(source='patient.username', read_only=True)
 
     class Meta:
         model = Order
@@ -60,12 +62,13 @@ class OrderSerializer(serializers.ModelSerializer):
             'store_name',
             'medicine',
             'medicine_name',
-            'user',
-            'user_name',
+            'patient',
+            'patient_name',
             'quantity',
             'status',
             'created_at'
         ]
+
 
 # ⏰ Reminder Serializer
 class ReminderSerializer(serializers.ModelSerializer):
