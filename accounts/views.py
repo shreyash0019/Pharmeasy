@@ -20,6 +20,7 @@ class RegisterView(generics.CreateAPIView):
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
 
+        # Minimal response to reduce payload and speed up response
         return Response({
             "user": {
                 "id": user.id,
