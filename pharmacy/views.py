@@ -21,6 +21,7 @@ class MedicineViewSet(viewsets.ModelViewSet):
 
 # 🔹 MEDICAL STORE CRUD
 class MedicalStoreViewSet(viewsets.ModelViewSet):
+    queryset = MedicalStore.objects.all()  # added class-level queryset
     serializer_class = MedicalStoreSerializer
     permission_classes = [IsAuthenticated]
 
@@ -35,6 +36,7 @@ class MedicalStoreViewSet(viewsets.ModelViewSet):
 
 # 🔹 STORE INVENTORY CRUD
 class StoreInventoryViewSet(viewsets.ModelViewSet):
+    queryset = StoreInventory.objects.all()  # added class-level queryset
     serializer_class = StoreInventorySerializer
     permission_classes = [IsAuthenticated]
 
