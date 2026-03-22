@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import Medicine, StoreInventory, MedicalStore, Reminder
 from orders.models import Order
 
-# 💊 Medicine Serializer (❌ removed manufacturer & composition)
+# 💊 Medicine Serializer (NO manufacturer/composition)
 class MedicineSerializer(serializers.ModelSerializer):
     class Meta:
         model = Medicine
@@ -48,7 +48,7 @@ class StoreInventorySerializer(serializers.ModelSerializer):
         ]
 
 
-# 🛒 Order Serializer (FIXED → patient instead of user)
+# 🛒 Order Serializer (IMPORTANT FIX)
 class OrderSerializer(serializers.ModelSerializer):
     store_name = serializers.CharField(source='store.store_name', read_only=True)
     medicine_name = serializers.CharField(source='medicine.name', read_only=True)
