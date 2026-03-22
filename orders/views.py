@@ -11,6 +11,7 @@ from pharmacy.utils import send_fcm_notification
 
 
 class OrderViewSet(viewsets.ModelViewSet):
+    queryset = Order.objects.all()  # 🔹 add this
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
 
@@ -31,7 +32,6 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         # 🔔 Notify seller
         store_user = order.store.user
-
         if store_user.fcm_token:
             send_fcm_notification(
                 store_user.fcm_token,
@@ -53,7 +53,6 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         # 🔔 Notify patient
         patient = order.patient
-
         if patient.fcm_token:
             send_fcm_notification(
                 patient.fcm_token,
