@@ -38,7 +38,6 @@ urlpatterns = [
 
     # ✅ Custom APIs
     path('api/stores/all/', get_stores),
-    path('api/orders/my/', get_orders),
     path('api/reminders/my/', get_reminders),
 
     # 🔹 ViewSets
