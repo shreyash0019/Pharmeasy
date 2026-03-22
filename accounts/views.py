@@ -2,12 +2,9 @@ from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
-
 from rest_framework_simplejwt.views import TokenObtainPairView
-
 from .serializers import RegisterSerializer
 from .models import User
-
 
 # ✅ REGISTER
 class RegisterView(generics.CreateAPIView):
@@ -15,8 +12,19 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
 
+    def create(self, request, *args, **kwargs):
+        # Use serializer to validate and create
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response({
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role
+        })
 
-# ✅ CUSTOM LOGIN (IMPORTANT FIX)
+# ✅ CUSTOM LOGIN
 class CustomLoginView(TokenObtainPairView):
     permission_classes = [AllowAny]
 
@@ -25,18 +33,14 @@ class CustomLoginView(TokenObtainPairView):
         password = request.data.get("password")
 
         user = authenticate(username=username, password=password)
-
         if not user:
             return Response({"error": "Invalid credentials"}, status=401)
 
-        # get tokens from default JWT view
         response = super().post(request, *args, **kwargs)
-
-        # ✅ add user data in response
         response.data['user'] = {
             "id": user.id,
             "username": user.username,
             "email": user.email,
+            "role": user.role
         }
-
         return response
