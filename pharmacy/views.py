@@ -95,17 +95,7 @@ def get_stores(request):
     return Response(serializer.data)
 
 # 🛒 GET ORDERS
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_orders(request):
-    user = request.user
-    if user.role == "seller":
-        orders = Order.objects.filter(store__user=user)
-    else:
-        orders = Order.objects.filter(patient=user)
 
-    serializer = OrderSerializer(orders, many=True)
-    return Response(serializer.data)
 
 # ⏰ GET REMINDERS
 @api_view(['GET'])
