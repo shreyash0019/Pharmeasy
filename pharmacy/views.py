@@ -56,10 +56,12 @@ def search_medicine(request):
     if not query:
         return Response({"error": "Please provide search query"}, status=400)
 
-    medicines = Medicine.objects.filter(
-        Q(name__icontains=query) |
-        Q(description__icontains=query)
-    )
+    medicines = Medicine.objects.only(
+    'id', 'name', 'description', 'requires_prescription'
+).filter(
+    Q(name__icontains=query) |
+    Q(description__icontains=query)
+))
 
     data = []
     for med in medicines:
