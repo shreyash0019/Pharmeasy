@@ -156,3 +156,76 @@ def get_reminders(request):
     reminders = Reminder.objects.filter(user=request.user)
     serializer = ReminderSerializer(reminders, many=True)
     return Response(serializer.data)
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+from orders.models import Order
+from reminders.models import Reminder
+
+
+# 🏪 GET STORES
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_stores(request):
+    stores = MedicalStore.objects.all()
+
+    data = [
+        {
+            "id": store.id,
+            "store_name": store.store_name,
+            "address": store.address
+        }
+        for store in stores
+    ]
+
+    return Response(data)
+
+
+# 🛒 GET ORDERS
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_orders(request):
+    user = request.user
+
+    if user.role == "seller":
+        orders = Order.objects.filter(store__user=user)
+    else:
+        orders = Order.objects.filter(patient=user)
+
+    data = [
+        {
+            "id": order.id,
+            "store": order.store.store_name,
+            "medicine": order.medicine.name,
+            "quantity": order.quantity,
+            "status": order.status,
+            "created_at": order.created_at
+        }
+        for order in orders
+    ]
+
+    return Response(data)
+
+
+# ⏰ GET REMINDERS
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_reminders(request):
+    reminders = Reminder.objects.filter(user=request.user)
+
+    data = [
+        {
+            "id": r.id,
+            "medicine": r.medicine.name,
+            "time": r.reminder_time,
+            "frequency_per_day": r.frequency_per_day,
+            "start_date": r.start_date,
+            "end_date": r.end_date
+        }
+        for r in reminders
+    ]
+
+    return Response(data)
+
