@@ -3,8 +3,11 @@ Django settings for config project.
 """
 
 from pathlib import Path
+import os
 
-# Base directory
+# ========================
+# BASE DIRECTORY
+# ========================
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -86,7 +89,7 @@ TEMPLATES = [
 
 
 # ========================
-# DATABASE (SQLite for now)
+# DATABASE
 # ========================
 DATABASES = {
     "default": {
@@ -100,18 +103,10 @@ DATABASES = {
 # PASSWORD VALIDATION
 # ========================
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
 
@@ -159,3 +154,9 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ),
 }
+
+
+# ========================
+# FIREBASE CONFIG 🔔
+# ========================
+FIREBASE_CREDENTIALS = BASE_DIR / "firebase.json"
