@@ -1,12 +1,23 @@
 from rest_framework import viewsets
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Medicine, StoreInventory, MedicalStore
+from django.db.models import Q
+
+from .models import (
+    Medicine,
+    StoreInventory,
+    MedicalStore,
+    Order,
+    Reminder
+)
+
 from .serializers import (
     MedicineSerializer,
     StoreInventorySerializer,
-    MedicalStoreSerializer
+    MedicalStoreSerializer,
+    OrderSerializer,
+    ReminderSerializer
 )
 
 
@@ -19,9 +30,17 @@ class MedicineViewSet(viewsets.ModelViewSet):
 
 # 🔹 MEDICAL STORE CRUD
 class MedicalStoreViewSet(viewsets.ModelViewSet):
-    queryset = MedicalStore.objects.all()
     serializer_class = MedicalStoreSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        # ✅ seller sees only his store
+        if hasattr(user, 'medical_store'):
+            return MedicalStore.objects.filter(user=user)
+
+        return MedicalStore.objects.all()
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -29,20 +48,32 @@ class MedicalStoreViewSet(viewsets.ModelViewSet):
 
 # 🔹 STORE INVENTORY CRUD
 class StoreInventoryViewSet(viewsets.ModelViewSet):
-    queryset = StoreInventory.objects.all()
     serializer_class = StoreInventorySerializer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        user = self.request.user
 
-# 🔹 SEARCH MEDICINE
+        # ✅ seller sees only his inventory
+        if hasattr(user, 'medical_store'):
+            return StoreInventory.objects.filter(store__user=user)
+
+        return StoreInventory.objects.all()
+
+
+# 🔍 SEARCH MEDICINE (FIXED + IMPROVED)
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def search_medicine(request):
-    name = request.GET.get('name')
+    query = request.GET.get('q', '')
 
-    if not name:
-        return Response({"error": "Please provide medicine name"}, status=400)
+    if not query:
+        return Response({"error": "Please provide search query"}, status=400)
 
-    medicines = Medicine.objects.filter(name__icontains=name)
+    medicines = Medicine.objects.filter(
+        Q(name__icontains=query) |
+        Q(description__icontains=query)
+    )
 
     data = []
 
@@ -50,7 +81,7 @@ def search_medicine(request):
         inventories = StoreInventory.objects.filter(
             medicine=med,
             stock__gt=0
-        )
+        ).select_related('store')
 
         stores = [
             {
@@ -70,3 +101,58 @@ def search_medicine(request):
         })
 
     return Response(data)
+
+
+# 🏪 GET STORES API
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_stores(request):
+    stores = MedicalStore.objects.all()
+    serializer = MedicalStoreSerializer(stores, many=True)
+    return Response(serializer.data)
+
+
+# 📦 GET ORDERS API
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_orders(request):
+    user = request.user
+
+    # ✅ seller view
+    if hasattr(user, 'medical_store'):
+        orders = Order.objects.filter(store__user=user)
+    else:
+        # ✅ customer view
+        orders = Order.objects.filter(user=user)
+
+    serializer = OrderSerializer(orders, many=True)
+    return Response(serializer.data)
+
+
+# ✅ CONFIRM ORDER
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def confirm_order(request, order_id):
+    try:
+        order = Order.objects.get(id=order_id)
+
+        # only store owner can confirm
+        if order.store.user != request.user:
+            return Response({"error": "Not allowed"}, status=403)
+
+        order.status = "confirmed"
+        order.save()
+
+        return Response({"message": "Order confirmed"})
+
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found"}, status=404)
+
+
+# ⏰ GET REMINDERS
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_reminders(request):
+    reminders = Reminder.objects.filter(user=request.user)
+    serializer = ReminderSerializer(reminders, many=True)
+    return Response(serializer.data)
