@@ -54,30 +54,6 @@ class StoreInventory(models.Model):
         return f"{self.store.store_name} - {self.medicine.name}"
 
 
-# 🛒 Orders
-class Order(models.Model):
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('confirmed', 'Confirmed'),
-        ('delivered', 'Delivered'),
-    ]
-
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="pharmacy_orders"   # ✅ FIXED
-    )
-    store = models.ForeignKey(
-        MedicalStore,
-        on_delete=models.CASCADE,
-        related_name="store_orders"   # ✅ FIXED
-    )
-
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Order {self.id} - {self.status}"
 
 
 # 📦 Order Items
