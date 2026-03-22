@@ -82,3 +82,11 @@ def get_orders(request):
         orders = Order.objects.filter(patient=user)
 
     return Response(OrderSerializer(orders, many=True).data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_stores(request):
+    stores = MedicalStore.objects.all()
+    serializer = MedicalStoreSerializer(stores, many=True)
+    return Response(serializer.data)
