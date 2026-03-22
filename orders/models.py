@@ -11,14 +11,14 @@ class Order(models.Model):
         ('cancelled', 'Cancelled'),
     ]
 
-    # 👤 Patient (user placing order)
+    # 👤 Patient
     patient = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="patient_orders"
     )
 
-    # 🏪 Store fulfilling order
+    # 🏪 Store
     store = models.ForeignKey(
         MedicalStore,
         on_delete=models.CASCADE,
@@ -35,7 +35,7 @@ class Order(models.Model):
     # 🔢 Quantity
     quantity = models.PositiveIntegerField()
 
-    # 📄 Prescription (optional)
+    # 📄 Prescription
     prescription = models.FileField(
         upload_to='prescriptions/',
         null=True,
@@ -49,9 +49,27 @@ class Order(models.Model):
         default='pending'
     )
 
-    # ⏱️ Timestamps
+    # ⏱️ Time
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Order {self.id} - {self.patient.username} - {self.status}"
+
+
+# ✅ ADD THIS (IMPORTANT FIX)
+class OrderItem(models.Model):
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="items"
+    )
+    medicine = models.ForeignKey(
+        Medicine,
+        on_delete=models.CASCADE,
+        related_name="order_items"
+    )
+    quantity = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.medicine.name} x {self.quantity}"
