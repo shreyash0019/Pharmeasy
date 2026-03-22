@@ -2,30 +2,40 @@ from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import RegisterSerializer
 from .models import User
 
-# ✅ REGISTER
+# 🔹 REGISTER + JWT response immediately
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):
-        # Use serializer to validate and create
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+
         return Response({
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "role": user.role
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": user.role
+            },
+            "tokens": {
+                "refresh": str(refresh),
+                "access": str(refresh.access_token)
+            }
         })
 
-# ✅ CUSTOM LOGIN
-class CustomLoginView(TokenObtainPairView):
+
+# 🔹 CUSTOM LOGIN (JWT + user info)
+class CustomLoginView(generics.GenericAPIView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
@@ -36,11 +46,17 @@ class CustomLoginView(TokenObtainPairView):
         if not user:
             return Response({"error": "Invalid credentials"}, status=401)
 
-        response = super().post(request, *args, **kwargs)
-        response.data['user'] = {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "role": user.role
-        }
-        return response
+        refresh = RefreshToken.for_user(user)
+
+        return Response({
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": user.role
+            },
+            "tokens": {
+                "refresh": str(refresh),
+                "access": str(refresh.access_token)
+            }
+        })
