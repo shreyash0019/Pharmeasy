@@ -1,3 +1,4 @@
+# pharmacy/views.py
 from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -15,14 +16,15 @@ from .serializers import (
     ReminderSerializer
 )
 
-# 💊 Medicines
+
+# 💊 Medicines — all users can see all
 class MedicineViewSet(viewsets.ModelViewSet):
     queryset = Medicine.objects.all()
     serializer_class = MedicineSerializer
     permission_classes = [IsAuthenticated]
 
 
-# 🏪 Stores
+# 🏪 Stores — all users can see all
 class MedicalStoreViewSet(viewsets.ModelViewSet):
     queryset = MedicalStore.objects.all()
     serializer_class = MedicalStoreSerializer
@@ -32,14 +34,14 @@ class MedicalStoreViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 
-# 📦 Inventory
+# 📦 Inventory — all users can see all
 class StoreInventoryViewSet(viewsets.ModelViewSet):
-    queryset = StoreInventory.objects.select_related('store', 'medicine')
+    queryset = StoreInventory.objects.select_related('store', 'medicine').all()
     serializer_class = StoreInventorySerializer
     permission_classes = [IsAuthenticated]
 
 
-# 🔍 Search Medicines
+# 🔍 Search Medicines — global search
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def search_medicine(request):
@@ -49,25 +51,35 @@ def search_medicine(request):
 
     try:
         inventories = StoreInventory.objects.select_related('medicine', 'store').filter(
-            medicine__name__icontains=query,
-            stock__gt=0
+            Q(medicine__name__icontains=query) |
+            Q(medicine__description__icontains=query)
         ).order_by('price')
     except OperationalError:
         inventories = []
 
-    result = []
+    # Group by medicine
+    result = {}
     for item in inventories:
-        result.append({
-            "medicine": item.medicine.name,
-            "store": item.store.store_name,
+        med_id = item.medicine.id
+        if med_id not in result:
+            result[med_id] = {
+                "medicine_id": med_id,
+                "medicine": item.medicine.name,
+                "description": item.medicine.description,
+                "requires_prescription": item.medicine.requires_prescription,
+                "stores": []
+            }
+        result[med_id]["stores"].append({
+            "store_id": item.store.id,
+            "store_name": item.store.store_name,
             "price": item.price,
             "stock": item.stock
         })
 
-    return Response(result)
+    return Response(list(result.values()))
 
 
-# 🛒 Orders
+# 🛒 Get Orders — seller sees their store orders, others see patient orders
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_orders(request):
@@ -83,6 +95,7 @@ def get_orders(request):
     return Response(OrderSerializer(orders, many=True).data)
 
 
+# 🛒 Create Order
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_order(request):
@@ -93,7 +106,7 @@ def create_order(request):
     return Response(serializer.errors, status=400)
 
 
-# 🏪 Stores
+# 🏪 Get Stores — all stores
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_stores(request):
@@ -104,7 +117,7 @@ def get_stores(request):
     return Response(MedicalStoreSerializer(stores, many=True).data)
 
 
-# ⏰ Reminders
+# ⏰ Get Reminders — only user's reminders
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_reminders(request):
@@ -115,6 +128,7 @@ def get_reminders(request):
     return Response(ReminderSerializer(reminders, many=True).data)
 
 
+# ⏰ Create Reminder — attach user automatically
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_reminder(request):
