@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
+from datetime import datetime
 
 from .models import Medicine, StoreInventory, MedicalStore, Reminder
 from orders.models import Order
@@ -15,44 +16,31 @@ from .serializers import (
     ReminderSerializer
 )
 
-
-# 💊 MEDICINE
+# 💊 MEDICINE (ALL USERS CAN SEE ALL MEDICINES)
 class MedicineViewSet(viewsets.ModelViewSet):
     queryset = Medicine.objects.all()
     serializer_class = MedicineSerializer
     permission_classes = [IsAuthenticated]
 
 
-# 🏪 STORE
+# 🏪 STORE (ALL USERS CAN SEE ALL STORES)
 class MedicalStoreViewSet(viewsets.ModelViewSet):
     queryset = MedicalStore.objects.all()
     serializer_class = MedicalStoreSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        user = self.request.user
-        if hasattr(user, 'medical_store'):
-            return MedicalStore.objects.filter(user=user)
-        return MedicalStore.objects.all()
-
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
 
-# 📦 INVENTORY
+# 📦 INVENTORY (ALL USERS CAN SEE ALL INVENTORY)
 class StoreInventoryViewSet(viewsets.ModelViewSet):
-    queryset = StoreInventory.objects.all()
+    queryset = StoreInventory.objects.select_related('store', 'medicine').all()
     serializer_class = StoreInventorySerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        user = self.request.user
-        if hasattr(user, 'medical_store'):
-            return StoreInventory.objects.filter(store__user=user)
-        return StoreInventory.objects.all()
 
-
-# 🔍 SEARCH
+# 🔍 SEARCH (MAIN FEATURE — WORKS LIKE PHARMACY APP)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def search_medicine(request):
@@ -61,37 +49,34 @@ def search_medicine(request):
     if not query:
         return Response({"error": "Please provide search query"}, status=400)
 
-    medicines = Medicine.objects.filter(
-        Q(name__icontains=query) |
-        Q(description__icontains=query)
+    inventories = StoreInventory.objects.select_related('medicine', 'store').filter(
+        Q(medicine__name__icontains=query),
+        stock__gt=0,
+        expiry_date__gt=datetime.now()
     )
 
-    data = []
-    for med in medicines:
-        inventories = StoreInventory.objects.filter(
-            medicine=med,
-            stock__gt=0
-        ).select_related('store')
+    result = {}
 
-        stores = [
-            {
-                "store_id": i.store.id,
-                "store_name": i.store.store_name,
-                "price": i.price,
-                "stock": i.stock
+    for item in inventories:
+        med_name = item.medicine.name
+
+        if med_name not in result:
+            result[med_name] = {
+                "medicine_id": item.medicine.id,
+                "medicine": med_name,
+                "description": item.medicine.description,
+                "requires_prescription": item.medicine.requires_prescription,
+                "stores": []
             }
-            for i in inventories
-        ]
 
-        data.append({
-            "medicine_id": med.id,
-            "medicine": med.name,
-            "description": med.description,
-            "requires_prescription": med.requires_prescription,
-            "available_stores": stores
+        result[med_name]["stores"].append({
+            "store_id": item.store.id,
+            "store_name": item.store.store_name,
+            "price": item.price,
+            "stock": item.stock
         })
 
-    return Response(data)
+    return Response(list(result.values()))
 
 
 # 🛒 GET ORDERS
@@ -100,7 +85,6 @@ def search_medicine(request):
 def get_orders(request):
     user = request.user
 
-    # ⚠️ SAFE role check (avoids crash if role not present)
     if hasattr(user, 'role') and user.role == "seller":
         orders = Order.objects.filter(store__user=user)
     else:
@@ -109,18 +93,39 @@ def get_orders(request):
     return Response(OrderSerializer(orders, many=True).data)
 
 
+# 🛒 CREATE ORDER ✅ (ADDED — IMPORTANT)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_order(request):
+    serializer = OrderSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(patient=request.user)  # 🔥 attach user
+        return Response(serializer.data, status=201)
+    return Response(serializer.errors, status=400)
+
+
 # 🏪 GET STORES
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_stores(request):
     stores = MedicalStore.objects.all()
-    serializer = MedicalStoreSerializer(stores, many=True)
-    return Response(serializer.data)
+    return Response(MedicalStoreSerializer(stores, many=True).data)
 
 
-# ⏰ GET REMINDERS (ADD THIS — missing earlier ❗)
+# ⏰ GET REMINDERS
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_reminders(request):
     reminders = Reminder.objects.filter(user=request.user)
     return Response(ReminderSerializer(reminders, many=True).data)
+
+
+# ⏰ CREATE REMINDER ✅ (FIXED)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_reminder(request):
+    serializer = ReminderSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(user=request.user)  # 🔥 IMPORTANT FIX
+        return Response(serializer.data, status=201)
+    return Response(serializer.errors, status=400)
