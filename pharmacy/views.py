@@ -2,7 +2,6 @@ from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.db.models import Q
 
 from .models import Medicine, StoreInventory, MedicalStore, Reminder
 from orders.models import Order
@@ -35,47 +34,36 @@ class MedicalStoreViewSet(viewsets.ModelViewSet):
 
 # 📦 INVENTORY
 class StoreInventoryViewSet(viewsets.ModelViewSet):
-    queryset = StoreInventory.objects.select_related('store', 'medicine')
+    queryset = StoreInventory.objects.select_related('store', 'medicine').all()
     serializer_class = StoreInventorySerializer
     permission_classes = [IsAuthenticated]
 
 
-# 🔍 SEARCH (FIXED + OPTIMIZED)
+# 🔍 SEARCH (SIMPLE & WORKING ✅)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def search_medicine(request):
-    query = request.GET.get('q', '').strip()
+    query = request.GET.get('q', '')
 
     if not query:
         return Response({"error": "Please provide search query"}, status=400)
 
-    inventories = StoreInventory.objects.select_related('medicine', 'store').filter(
-        Q(medicine__name__icontains=query),
+    inventories = StoreInventory.objects.filter(
+        medicine__name__icontains=query,
         stock__gt=0
-    ).order_by('price')  # 🔥 cheapest first
+    ).select_related('medicine', 'store')
 
-    result = {}
+    data = []
 
     for item in inventories:
-        med_id = item.medicine.id
-
-        if med_id not in result:
-            result[med_id] = {
-                "medicine_id": med_id,
-                "medicine": item.medicine.name,
-                "description": item.medicine.description,
-                "requires_prescription": item.medicine.requires_prescription,
-                "stores": []
-            }
-
-        result[med_id]["stores"].append({
-            "store_id": item.store.id,
-            "store_name": item.store.store_name,
+        data.append({
+            "medicine": item.medicine.name,
+            "store": item.store.store_name,
             "price": item.price,
             "stock": item.stock
         })
 
-    return Response(list(result.values()))
+    return Response(data)
 
 
 # 🛒 GET ORDERS
