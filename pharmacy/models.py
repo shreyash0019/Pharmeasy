@@ -42,7 +42,6 @@ class StoreInventory(models.Model):
 
     class Meta:
         unique_together = ['store', 'medicine']
-        ordering = ['price']
 
     def __str__(self):
         return f"{self.store.store_name} - {self.medicine.name}"
