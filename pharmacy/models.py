@@ -1,7 +1,6 @@
 from django.db import models
 from django.conf import settings
 
-
 # 🏪 Medical Store
 class MedicalStore(models.Model):
     user = models.OneToOneField(
@@ -26,7 +25,7 @@ class Medicine(models.Model):
         return self.name
 
 
-# 📦 Store Inventory (MAIN MODEL)
+# 📦 Store Inventory
 class StoreInventory(models.Model):
     store = models.ForeignKey(
         MedicalStore,
@@ -38,7 +37,6 @@ class StoreInventory(models.Model):
         on_delete=models.CASCADE,
         related_name="store_data"
     )
-
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.PositiveIntegerField()
 
