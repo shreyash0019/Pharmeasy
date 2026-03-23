@@ -3,7 +3,7 @@ from .models import Medicine, StoreInventory, MedicalStore, Reminder
 from orders.models import Order
 
 
-# 💊 Medicine Serializer (ONLY fields that exist in DB)
+# 💊 Medicine Serializer
 class MedicineSerializer(serializers.ModelSerializer):
     class Meta:
         model = Medicine
@@ -29,7 +29,7 @@ class MedicalStoreSerializer(serializers.ModelSerializer):
         ]
 
 
-# 📦 Inventory
+# 📦 Inventory (FIXED ✅)
 class StoreInventorySerializer(serializers.ModelSerializer):
     store_name = serializers.CharField(source='store.store_name', read_only=True)
     medicine_name = serializers.CharField(source='medicine.name', read_only=True)
@@ -43,13 +43,11 @@ class StoreInventorySerializer(serializers.ModelSerializer):
             'medicine',
             'medicine_name',
             'price',
-            'discount_price',
-            'stock',
-            'expiry_date'
+            'stock'
         ]
 
 
-# 🛒 Order (FIXED for orders app model)
+# 🛒 Order
 class OrderSerializer(serializers.ModelSerializer):
     store_name = serializers.CharField(source='store.store_name', read_only=True)
     medicine_name = serializers.CharField(source='medicine.name', read_only=True)
@@ -71,7 +69,7 @@ class OrderSerializer(serializers.ModelSerializer):
         ]
 
 
-# ⏰ Reminder (MATCH your CURRENT model)
+# ⏰ Reminder
 class ReminderSerializer(serializers.ModelSerializer):
     user_name = serializers.CharField(source='user.username', read_only=True)
 
