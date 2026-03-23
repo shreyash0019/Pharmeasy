@@ -2,17 +2,11 @@ from rest_framework import serializers
 from .models import Medicine, StoreInventory, MedicalStore, Reminder
 from orders.models import Order
 
-
-# 💊 Medicine Serializer
+# 💊 Medicine
 class MedicineSerializer(serializers.ModelSerializer):
     class Meta:
         model = Medicine
-        fields = [
-            'id',
-            'name',
-            'description',
-            'requires_prescription'
-        ]
+        fields = ['id', 'name', 'description', 'requires_prescription']
 
 
 # 🏪 Medical Store
@@ -21,30 +15,17 @@ class MedicalStoreSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MedicalStore
-        fields = [
-            'id',
-            'store_name',
-            'address',
-            'user'
-        ]
+        fields = ['id', 'store_name', 'address', 'user']
 
 
-# 📦 Inventory (FIXED ✅)
+# 📦 Store Inventory
 class StoreInventorySerializer(serializers.ModelSerializer):
     store_name = serializers.CharField(source='store.store_name', read_only=True)
     medicine_name = serializers.CharField(source='medicine.name', read_only=True)
 
     class Meta:
         model = StoreInventory
-        fields = [
-            'id',
-            'store',
-            'store_name',
-            'medicine',
-            'medicine_name',
-            'price',
-            'stock'
-        ]
+        fields = ['id', 'store', 'store_name', 'medicine', 'medicine_name', 'price', 'stock']
 
 
 # 🛒 Order
@@ -55,18 +36,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = [
-            'id',
-            'store',
-            'store_name',
-            'medicine',
-            'medicine_name',
-            'patient',
-            'patient_name',
-            'quantity',
-            'status',
-            'created_at'
-        ]
+        fields = ['id', 'store', 'store_name', 'medicine', 'medicine_name', 'patient', 'patient_name', 'quantity', 'status', 'created_at']
 
 
 # ⏰ Reminder
@@ -75,10 +45,4 @@ class ReminderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Reminder
-        fields = [
-            'id',
-            'user',
-            'user_name',
-            'message',
-            'remind_at'
-        ]
+        fields = ['id', 'user', 'user_name', 'message', 'remind_at']
