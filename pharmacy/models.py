@@ -22,8 +22,6 @@ class Medicine(models.Model):
     description = models.TextField()
     requires_prescription = models.BooleanField(default=False)
 
-    # ❌ REMOVED manufacturer & composition
-
     def __str__(self):
         return self.name
 
@@ -42,12 +40,17 @@ class StoreInventory(models.Model):
     )
 
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    stock = models.IntegerField()
-    expiry_date = models.DateField(null=True, blank=True)
-    discount_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    stock = models.PositiveIntegerField()  # prevents negative stock
+    discount_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
 
     class Meta:
         unique_together = ['store', 'medicine']
+        ordering = ['price']  # cheapest first
 
     def __str__(self):
         return f"{self.store.store_name} - {self.medicine.name}"
@@ -60,8 +63,8 @@ class Reminder(models.Model):
         on_delete=models.CASCADE,
         related_name="pharmacy_reminders"
     )
-    message = models.TextField(null=True, blank=True)  # safe
-    remind_at = models.DateTimeField(null=True, blank=True)  # safe
+    message = models.TextField(null=True, blank=True)
+    remind_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.message or "Reminder"
