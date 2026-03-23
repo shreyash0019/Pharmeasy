@@ -26,7 +26,7 @@ class Medicine(models.Model):
         return self.name
 
 
-# 📦 Store Inventory
+# 📦 Store Inventory (MAIN MODEL)
 class StoreInventory(models.Model):
     store = models.ForeignKey(
         MedicalStore,
@@ -40,17 +40,11 @@ class StoreInventory(models.Model):
     )
 
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    stock = models.PositiveIntegerField()  # prevents negative stock
-    discount_price = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        null=True,
-        blank=True
-    )
+    stock = models.PositiveIntegerField()
 
     class Meta:
         unique_together = ['store', 'medicine']
-        ordering = ['price']  # cheapest first
+        ordering = ['price']
 
     def __str__(self):
         return f"{self.store.store_name} - {self.medicine.name}"
