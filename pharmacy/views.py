@@ -3,7 +3,6 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
-from datetime import datetime
 
 from .models import Medicine, StoreInventory, MedicalStore, Reminder
 from orders.models import Order
@@ -16,14 +15,15 @@ from .serializers import (
     ReminderSerializer
 )
 
-# 💊 MEDICINE (ALL USERS CAN SEE ALL MEDICINES)
+
+# 💊 MEDICINE
 class MedicineViewSet(viewsets.ModelViewSet):
     queryset = Medicine.objects.all()
     serializer_class = MedicineSerializer
     permission_classes = [IsAuthenticated]
 
 
-# 🏪 STORE (ALL USERS CAN SEE ALL STORES)
+# 🏪 STORE
 class MedicalStoreViewSet(viewsets.ModelViewSet):
     queryset = MedicalStore.objects.all()
     serializer_class = MedicalStoreSerializer
@@ -33,43 +33,42 @@ class MedicalStoreViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 
-# 📦 INVENTORY (ALL USERS CAN SEE ALL INVENTORY)
+# 📦 INVENTORY
 class StoreInventoryViewSet(viewsets.ModelViewSet):
-    queryset = StoreInventory.objects.select_related('store', 'medicine').all()
+    queryset = StoreInventory.objects.select_related('store', 'medicine')
     serializer_class = StoreInventorySerializer
     permission_classes = [IsAuthenticated]
 
 
-# 🔍 SEARCH (MAIN FEATURE — WORKS LIKE PHARMACY APP)
+# 🔍 SEARCH (FIXED + OPTIMIZED)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def search_medicine(request):
-    query = request.GET.get('q', '')
+    query = request.GET.get('q', '').strip()
 
     if not query:
         return Response({"error": "Please provide search query"}, status=400)
 
     inventories = StoreInventory.objects.select_related('medicine', 'store').filter(
         Q(medicine__name__icontains=query),
-        stock__gt=0,
-        expiry_date__gt=datetime.now()
-    )
+        stock__gt=0
+    ).order_by('price')  # 🔥 cheapest first
 
     result = {}
 
     for item in inventories:
-        med_name = item.medicine.name
+        med_id = item.medicine.id
 
-        if med_name not in result:
-            result[med_name] = {
-                "medicine_id": item.medicine.id,
-                "medicine": med_name,
+        if med_id not in result:
+            result[med_id] = {
+                "medicine_id": med_id,
+                "medicine": item.medicine.name,
                 "description": item.medicine.description,
                 "requires_prescription": item.medicine.requires_prescription,
                 "stores": []
             }
 
-        result[med_name]["stores"].append({
+        result[med_id]["stores"].append({
             "store_id": item.store.id,
             "store_name": item.store.store_name,
             "price": item.price,
@@ -93,13 +92,13 @@ def get_orders(request):
     return Response(OrderSerializer(orders, many=True).data)
 
 
-# 🛒 CREATE ORDER ✅ (ADDED — IMPORTANT)
+# 🛒 CREATE ORDER
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_order(request):
     serializer = OrderSerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save(patient=request.user)  # 🔥 attach user
+        serializer.save(patient=request.user)
         return Response(serializer.data, status=201)
     return Response(serializer.errors, status=400)
 
@@ -120,12 +119,12 @@ def get_reminders(request):
     return Response(ReminderSerializer(reminders, many=True).data)
 
 
-# ⏰ CREATE REMINDER ✅ (FIXED)
+# ⏰ CREATE REMINDER
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_reminder(request):
     serializer = ReminderSerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save(user=request.user)  # 🔥 IMPORTANT FIX
+        serializer.save(user=request.user)
         return Response(serializer.data, status=201)
     return Response(serializer.errors, status=400)
