@@ -160,3 +160,5 @@ REST_FRAMEWORK = {
 # FIREBASE CONFIG 🔔
 # ========================
 FIREBASE_CREDENTIALS = BASE_DIR / "firebase.json"
+
+APPEND_SLASH = False
