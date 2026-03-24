@@ -8,7 +8,6 @@ class MedicineSerializer(serializers.ModelSerializer):
         model = Medicine
         fields = ['id', 'name', 'description', 'requires_prescription']
 
-
 # 🏪 Medical Store
 class MedicalStoreSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True)
@@ -17,8 +16,7 @@ class MedicalStoreSerializer(serializers.ModelSerializer):
         model = MedicalStore
         fields = ['id', 'store_name', 'address', 'user']
 
-
-# 📦 Store Inventory
+# 📦 Inventory
 class StoreInventorySerializer(serializers.ModelSerializer):
     store_name = serializers.CharField(source='store.store_name', read_only=True)
     medicine_name = serializers.CharField(source='medicine.name', read_only=True)
@@ -26,7 +24,6 @@ class StoreInventorySerializer(serializers.ModelSerializer):
     class Meta:
         model = StoreInventory
         fields = ['id', 'store', 'store_name', 'medicine', 'medicine_name', 'price', 'stock']
-
 
 # 🛒 Order
 class OrderSerializer(serializers.ModelSerializer):
@@ -38,11 +35,8 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = ['id', 'store', 'store_name', 'medicine', 'medicine_name', 'patient', 'patient_name', 'quantity', 'status', 'created_at']
 
-
-# ⏰ Reminder
+# ⏰ Reminder (FREE Render — no user)
 class ReminderSerializer(serializers.ModelSerializer):
-    user_name = serializers.CharField(source='user.username', read_only=True)
-
     class Meta:
         model = Reminder
-        fields = ['id', 'user', 'user_name', 'message', 'remind_at']
+        fields = ['id', 'message', 'remind_at']
