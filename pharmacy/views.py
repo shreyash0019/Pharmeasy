@@ -3,10 +3,17 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
+from django.db.utils import OperationalError
 
 from .models import Medicine, StoreInventory, MedicalStore, Reminder
 from orders.models import Order
-from .serializers import MedicineSerializer, StoreInventorySerializer, MedicalStoreSerializer, OrderSerializer, ReminderSerializer
+from .serializers import (
+    MedicineSerializer,
+    StoreInventorySerializer,
+    MedicalStoreSerializer,
+    OrderSerializer,
+    ReminderSerializer
+)
 
 # 💊 Medicines
 class MedicineViewSet(viewsets.ModelViewSet):
@@ -19,74 +26,91 @@ class MedicalStoreViewSet(viewsets.ModelViewSet):
     queryset = MedicalStore.objects.all()
     serializer_class = MedicalStoreSerializer
     permission_classes = [IsAuthenticated]
-
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
 # 📦 Inventory
 class StoreInventoryViewSet(viewsets.ModelViewSet):
-    queryset = StoreInventory.objects.select_related('store','medicine')
+    queryset = StoreInventory.objects.select_related('store', 'medicine')
     serializer_class = StoreInventorySerializer
     permission_classes = [IsAuthenticated]
 
-# 🔍 Search Medicines (ALL users see results)
+# 🔍 Search Medicines
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def search_medicine(request):
-    q = request.GET.get('q','').strip()
-    if not q:
+    query = request.GET.get('q','').strip()
+    if not query:
         return Response([])
-    items = StoreInventory.objects.select_related('medicine','store').filter(
-        medicine__name__icontains=q,
-        stock__gt=0
-    ).order_by('price')
+
+    try:
+        inventories = StoreInventory.objects.select_related('medicine','store').filter(
+            medicine__name__icontains=query,
+            stock__gt=0
+        ).order_by('price')
+    except OperationalError:
+        inventories = []
+
     result = []
-    for i in items:
+    for item in inventories:
         result.append({
-            "medicine": i.medicine.name,
-            "store": i.store.store_name,
-            "price": i.price,
-            "stock": i.stock
+            "medicine_id": item.medicine.id,  # for create_order
+            "medicine": item.medicine.name,
+            "store_id": item.store.id,        # for create_order
+            "store": item.store.store_name,
+            "price": item.price,
+            "stock": item.stock
         })
     return Response(result)
 
-# 🏪 Get all stores
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_stores(request):
-    stores = MedicalStore.objects.all()
-    return Response(MedicalStoreSerializer(stores, many=True).data)
-
-# ⏰ Get reminders (ALL users see all)
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_reminders(request):
-    reminders = Reminder.objects.all()
-    return Response(ReminderSerializer(reminders, many=True).data)
-
-# ⏰ Create reminder (ALL users)
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def create_reminder(request):
-    serializer = ReminderSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=201)
-    return Response(serializer.errors, status=400)
-
-# 🛒 Get orders (ALL users see all)
+# 🛒 Orders
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_orders(request):
-    orders = Order.objects.all()
+    try:
+        user = request.user
+        if hasattr(user, 'role') and user.role == "seller":
+            orders = Order.objects.filter(store__user=user)
+        else:
+            orders = Order.objects.filter(patient=user)
+    except OperationalError:
+        orders = []
     return Response(OrderSerializer(orders, many=True).data)
 
-# 🛒 Create order (ALL users)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_order(request):
     serializer = OrderSerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save()
+        serializer.save(patient=request.user)
+        return Response(serializer.data, status=201)
+    return Response(serializer.errors, status=400)
+
+# 🏪 Stores
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_stores(request):
+    try:
+        stores = MedicalStore.objects.all()
+    except OperationalError:
+        stores = []
+    return Response(MedicalStoreSerializer(stores, many=True).data)
+
+# ⏰ Reminders (FREE Render compatible)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_reminders(request):
+    try:
+        reminders = Reminder.objects.all()  # no user filter
+    except OperationalError:
+        reminders = []
+    return Response(ReminderSerializer(reminders, many=True).data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_reminder(request):
+    serializer = ReminderSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()  # no user
         return Response(serializer.data, status=201)
     return Response(serializer.errors, status=400)
