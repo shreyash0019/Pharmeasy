@@ -38,22 +38,18 @@ class StoreInventory(models.Model):
         related_name="store_data"
     )
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    stock = models.PositiveIntegerField()
+    stock = models.PositiveIntegerField()  # prevents negative stock
 
     class Meta:
         unique_together = ['store', 'medicine']
+        ordering = ['price']
 
     def __str__(self):
         return f"{self.store.store_name} - {self.medicine.name}"
 
 
-# ⏰ Reminder
+# ⏰ Reminder (FREE Render FIX — no user field)
 class Reminder(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="pharmacy_reminders"
-    )
     message = models.TextField(null=True, blank=True)
     remind_at = models.DateTimeField(null=True, blank=True)
 
